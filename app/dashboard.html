@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="../global.css">
+    <title>Dashboard</title>
+</head>
+
+<body>
+    <div id="root">
+        <div id="left">
+            <label for="title">
+                <h3>add title</h3>
+            </label>
+            <input id="title" type="text">
+            <label for="keybind">
+                <h3>add keybind</h3>
+            </label>
+            <input id="keybind" type="text">
+
+            <label for="default_workflows">
+                <h3>set up default workflow</h3>
+            </label>
+            <select name="default_workflow" id="default_workflows">
+                <option default value="no_value">null</option>
+                <option value="ctrl+shift+1">ctrl+shift+1</option>
+                <option value="ctrl+shift+2">ctrl+shift+2</option>
+                <option value="ctrl+shift+3">ctrl+shift+3</option>
+            </select>
+            <label for="links">
+                <h3>add links "," separated</h3>
+            </label>
+            <textarea name="links" id="links"
+                placeholder="https://www.youtube.com/ , https://www.google.com"></textarea>
+            <button id="add-button">ADD</button>
+        </div>
+        <div id="right">
+            <h2>Data</h2>
+        </div>
+    </div>
+
+    <script src="dashboard.js"></script>
+</body>
+
+</html>

@@ -1,0 +1,49 @@
+{
+    "manifest_version": 3,
+    "name": "test",
+    "version": "1.0.0",
+    "permissions": [
+        "activeTab",
+        "scripting",
+        "tabs",
+        "storage",
+        "activeTab"
+    ],
+    "options_page": "app/dashboard.html",
+    "host_permissions": [
+        "<all_urls>"
+    ],
+    "action": {
+        "default_title": "test",
+        "default_popup": "popup/popup.html"
+    },
+    "background": {
+        "service_worker": "background.js"
+    },
+    "commands": {
+        "activate": {
+            "suggested_key": {
+                "default": "Ctrl+Shift+0"
+            },
+            "description": "Trigger keybinds"
+        },
+        "default_1": {
+            "suggested_key": {
+                "default": "Ctrl+Shift+1"
+            },
+            "description": "Trigger keybinds"
+        },
+        "default_2": {
+            "suggested_key": {
+                "default": "Ctrl+Shift+2"
+            },
+            "description": "Trigger keybinds"
+        },
+        "default_3": {
+            "suggested_key": {
+                "default": "Ctrl+Shift+3"
+            },
+            "description": "Trigger keybinds"
+        }
+    }
+}
