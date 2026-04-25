@@ -1,11 +1,10 @@
-// TODO: make this dashboard work first get all the variables in here and set the data in the local storage  (DONE) 
 const links = document.getElementById("links")
 const title = document.getElementById("title")
 const keybind = document.getElementById("keybind")
 const add_button = document.getElementById("add-button")
 const default_workflows = document.getElementById("default_workflows")
+const delay = document.getElementById("delay-input")
 let is_default = null
-
 
 async function add_data_to_local_storage() {
     try {
@@ -13,6 +12,7 @@ async function add_data_to_local_storage() {
             title: title.value,
             keybind: keybind.value,
             links: links.value,
+            delay: delay.value
         }
         // TODO: save the data in the local storage DONE
         let validation_result = await validate_data(data)
@@ -27,12 +27,15 @@ async function add_data_to_local_storage() {
                     title: validation_result.data.title,
                     keybind: validation_result.data.keybind,
                     links: validation_result.data.links,
-                    default: is_default
+                    default: is_default,
+                    delay: validation_result.data.delay
+
                 }
                 let id = validation_result.data.keybind
                 data.push(data_to_be_saved)
                 await chrome.storage.local.set({ data: data });
-                console.log("done!");
+                console.log("done!", data_to_be_saved);
+
                 location.reload();
             } else {
                 console.log("data key is not found. cteating it");
@@ -81,6 +84,15 @@ async function validate_data(data) {
     });
 
 
+    // validate delay
+    if (data.delay) {
+        let delayValue = parseInt(data.delay);
+        if (isNaN(delayValue) || delayValue < 0) {
+            errors.push("Delay must be a non-negative number");
+        }
+    }
+
+
 
     if (invalidLinks.length > 0) {
         errors.push("Invalid links: " + invalidLinks.join(", "));
@@ -100,7 +112,9 @@ async function validate_data(data) {
         data: {
             title,
             keybind,
-            links: linksArray
+            links: linksArray,
+            delay: data.delay ? parseInt(data.delay) : 0
+
         }
     };
 }
@@ -142,7 +156,7 @@ async function render_ui() {
     });
 }
 
-async function test() {
+async function check_default() {
     if (default_workflows.value !== "no_value") {
         keybind.value = default_workflows.value
         keybind.readOnly = true
@@ -156,4 +170,4 @@ async function test() {
 
 document.addEventListener("DOMContentLoaded", render_ui)
 add_button.addEventListener("click", add_data_to_local_storage)
-default_workflows.addEventListener("change", test)
+default_workflows.addEventListener("change", check_default)

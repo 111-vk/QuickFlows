@@ -1,19 +1,18 @@
 (async function start_key_listener() {
     try {
         show_popup("Key listener activated!");
-        document.addEventListener("keydown", async (e) => {
+
+        const handler = async (e) => {
             console.log("start listening key");
-            // Build keybind string
+
             let keys = [];
 
             if (e.ctrlKey) keys.push("ctrl");
             if (e.altKey) keys.push("alt");
             if (e.shiftKey) keys.push("shift");
 
-            // Get main key
             let key = e.key.toLowerCase();
 
-            // Ignore modifier-only presses
             if (["control", "shift", "alt"].includes(key)) return;
 
             keys.push(key);
@@ -24,21 +23,28 @@
             const stored = await chrome.storage.local.get("data");
             const data = stored.data || [];
 
-            data.forEach(async (item) => {
+            for (let item of data) {
                 if (item.keybind === pressed) {
                     console.log(`Executing: ${item.title}`);
-                    // return data to background script
-                    chrome.runtime.sendMessage(
-                        { type: "keybind", payload: item },
-                    );
-                }
-            });
 
-        });
+                    chrome.runtime.sendMessage({
+                        type: "keybind",
+                        payload: item,
+                    });
+                    document.removeEventListener("keydown", handler);
+                    console.log("Listener removed");
+
+                    break;
+                }
+            }
+        };
+
+        document.addEventListener("keydown", handler);
+
     } catch (error) {
         console.log(error);
     }
-})()
+})();
 
 function show_popup(content = "Activated!") {
     // Prevent duplicate popup
