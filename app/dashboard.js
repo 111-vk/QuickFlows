@@ -1,8 +1,6 @@
 const links = document.getElementById("links")
 const title = document.getElementById("title")
 const keybind = document.getElementById("keybind")
-const add_button = document.getElementById("add-button")
-const default_workflows = document.getElementById("default_workflows")
 const delay = document.getElementById("delay-input")
 let is_default = null
 
@@ -22,8 +20,10 @@ async function add_data_to_local_storage() {
             if (stored_keys.includes("data")) {
                 // console.log(" \"key\" is found");
                 let response = await chrome.storage.local.get("data")
+                let UID = Math.random().toString(36).substr(2, 9);
                 data = response.data
                 let data_to_be_saved = {
+                    UID: UID,
                     title: validation_result.data.title,
                     keybind: validation_result.data.keybind,
                     links: validation_result.data.links,
@@ -141,6 +141,7 @@ async function render_ui() {
         link_card.classList.add("link-card");
 
         link_card.innerHTML = `
+            <button class="delete-button" data-uid="${value.UID}">X</button>
             <div class="card-header">
                 <h1>${value.default ? "✴️" : ""}${value.title}</h1>
                 <span class="keybind">${value.keybind}</span>
@@ -153,6 +154,11 @@ async function render_ui() {
 
         `;
         right.appendChild(link_card);
+
+        const btn = link_card.querySelector('.delete-button');
+        if (btn) {
+            btn.addEventListener('click', () => delete_keybind(value.UID));
+        }
     });
 }
 
@@ -168,6 +174,26 @@ async function check_default() {
     }
 }
 
-document.addEventListener("DOMContentLoaded", render_ui)
-add_button.addEventListener("click", add_data_to_local_storage)
-default_workflows.addEventListener("change", check_default)
+async function delete_keybind(uid) {
+    try {
+        const stored = await chrome.storage.local.get();
+        let data = stored.data || [];
+        data = data.filter(item => item.UID !== uid);
+        if (confirm("Are you sure you want to delete this keybind?")) {
+            await chrome.storage.local.set({ data: data });
+            console.log("Deleted keybind with UID:", uid);
+            location.reload();
+        }
+    } catch (error) {
+        console.log(error);
+    }
+
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+    render_ui();
+    const add_button = document.getElementById("add-button");
+    const default_workflows = document.getElementById("default_workflows");
+    if (add_button) add_button.addEventListener("click", add_data_to_local_storage);
+    if (default_workflows) default_workflows.addEventListener("change", check_default);
+});

@@ -131,6 +131,7 @@ body {
     padding: 15px;
     margin-bottom: 15px;
     transition: 0.2s ease;
+    position: relative;
 }
 
 
@@ -140,6 +141,7 @@ body {
     justify-content: space-between;
     align-items: center;
     margin-bottom: 10px;
+    padding-right: 48px;
 }
 
 .card-header h3 {
@@ -172,4 +174,35 @@ body {
 
 .card-links a:hover {
     color: var(--accent);
+}
+
+/* Delete button inside card */
+.delete-button {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    width: 34px;
+    height: 34px;
+    border-radius: 8px;
+    border: 1px solid transparent;
+    background: transparent;
+    color: var(--muted-text);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-weight: 700;
+    transition: 0.12s ease, transform 0.12s ease;
+}
+
+.delete-button:hover {
+    background: rgb(255, 1, 1);
+    color: var(--accent);
+    transform: translateY(-1px);
+    border-color: rgba(255, 255, 255, 0.06);
+}
+
+.delete-button:focus {
+    outline: 2px solid rgba(219, 62, 0, 0.18);
+    outline-offset: 2px;
 }
