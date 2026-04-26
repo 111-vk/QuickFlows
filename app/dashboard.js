@@ -2,6 +2,7 @@ const links = document.getElementById("links")
 const title = document.getElementById("title")
 const keybind = document.getElementById("keybind")
 const delay = document.getElementById("delay-input")
+const private_checkbox = document.getElementById("incognito")
 let is_default = null
 
 async function add_data_to_local_storage() {
@@ -28,10 +29,10 @@ async function add_data_to_local_storage() {
                     keybind: validation_result.data.keybind,
                     links: validation_result.data.links,
                     default: is_default,
-                    delay: validation_result.data.delay
+                    delay: validation_result.data.delay,
+                    private: private_checkbox.checked
 
                 }
-                let id = validation_result.data.keybind
                 data.push(data_to_be_saved)
                 await chrome.storage.local.set({ data: data });
                 console.log("done!", data_to_be_saved);
@@ -43,7 +44,7 @@ async function add_data_to_local_storage() {
                 //TODO: make this dynamic PENDING
             }
         } else {
-            alert(`data is empty or invalid`)
+            alert(validation_result.errors.join('\n'));
             console.log(validation_result.errors)
         }
 
@@ -91,7 +92,13 @@ async function validate_data(data) {
             errors.push("Delay must be a non-negative number");
         }
     }
-
+    // check if the selected default keybind is already used and alert the user
+    const stored = await chrome.storage.local.get();
+    const existingData = stored.data || [];
+    const isUsed = existingData.some(item => item.keybind === keybind);
+    if (isUsed) {
+        errors.push(`${keybind} is already used. Please choose a different keybind.`);
+    }
 
 
     if (invalidLinks.length > 0) {

@@ -19,7 +19,7 @@ async function router_function(command, data) {
             try {
                 console.log("Received:", data);
                 let links = data.links;
-                let new_window = await chrome.windows.create();
+                let new_window = await chrome.windows.create({ incognito: data.private || false });
                 for (let link of links) {
                     await chrome.tabs.create({ url: link, windowId: new_window.id });
                     await new Promise((resolve) => setTimeout(resolve, data.delay || 0));
@@ -74,7 +74,7 @@ async function router_function(command, data) {
                     //match the data    
                     default_data.forEach(async (item) => {
                         if (item.keybind.toLowerCase() === target.shortcut.toLowerCase()) {
-                            let new_window = await chrome.windows.create()
+                            let new_window = await chrome.windows.create({ incognito: item.private || false });
                             item.links.forEach(async (link) => {
 
                                 await chrome.tabs.create({ url: link, windowId: new_window.id });

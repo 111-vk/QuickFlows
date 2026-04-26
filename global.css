@@ -206,3 +206,28 @@ body {
     outline: 2px solid rgba(219, 62, 0, 0.18);
     outline-offset: 2px;
 }
+
+
+#private {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    /* push checkbox to far right */
+    gap: 10px;
+    margin: 10px 0;
+}
+
+#private label {
+    margin: 0;
+}
+
+#private h3 {
+    font-size: 14px;
+    font-weight: 600;
+}
+
+#private input[type="checkbox"] {
+    width: 14px;
+    height: 14px;
+    cursor: pointer;
+}
