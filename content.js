@@ -1,8 +1,12 @@
 (async function start_key_listener() {
     try {
+        // keep a reference on window so we can remove it reliably
+        let handler = window.__ext_key_handler || null;
+        if (handler) document.removeEventListener("keydown", handler);
+
         show_popup("Key listener activated!");
 
-        const handler = async (e) => {
+        handler = async (e) => {
             console.log("start listening key");
 
             let keys = [];
@@ -32,6 +36,8 @@
                         payload: item,
                     });
                     document.removeEventListener("keydown", handler);
+                    // clear stored reference
+                    if (window.__ext_key_handler === handler) window.__ext_key_handler = null;
                     console.log("Listener removed");
 
                     break;
@@ -39,6 +45,8 @@
             }
         };
 
+        // store the handler so future invocations can remove it
+        window.__ext_key_handler = handler;
         document.addEventListener("keydown", handler);
 
     } catch (error) {

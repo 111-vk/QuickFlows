@@ -231,3 +231,44 @@ body {
     height: 14px;
     cursor: pointer;
 }
+
+/* Popup header styles */
+.popup-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 12px;
+    background: var(--gray-50);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+    color: var(--gray-900);
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 9999;
+}
+
+.popup-title {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.popup-content {
+    padding: 12px;
+    min-width: 220px;
+}
+
+#settings-btn {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+#settings-btn img {
+    width: 20px;
+    height: 20px;
+}

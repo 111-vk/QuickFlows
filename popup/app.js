@@ -1,5 +1,5 @@
 // render opup UI for the popup
-async function render_ui() {
+(async function render_ui() {
     // Build root container and apply styles
     const body = document.body || document.querySelector('body');
     if (!body) return;
@@ -26,20 +26,19 @@ async function render_ui() {
         padding: '0',
         overflow: 'hidden',
         backgroundColor: 'black',
-        // scrollbar: 'none'
-        // overflow: 'hidden'
     });
 
     Object.assign(root.style, {
         margin: '0',
         padding: '8px',
-        overflow: 'auto',
+        overflow: 'scroll',
         // backgroundColor: 'red',
         display: 'flex',
         flexDirection: 'column',
         width: '620px',
         height: '720px',
         boxSizing: 'border-box',
+        marginTop: '45px',
 
     });
 
@@ -72,5 +71,12 @@ async function render_ui() {
 
 
 
+})()
+
+async function open_dashboard() {
+    console.log("testing");
+    let url = "../app/dashboard.html";
+    chrome.tabs.create({ url });
 }
-render_ui()
+
+document.getElementById("settings-btn").addEventListener("click", open_dashboard);
