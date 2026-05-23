@@ -1,4 +1,4 @@
-import { router_function, notify_for_oninstall, test } from "./utils.js";
+import { router_function, notify_for_oninstall } from "./utils.js";
 
 chrome.commands.onCommand.addListener(async (command, ...all) => {
     try {

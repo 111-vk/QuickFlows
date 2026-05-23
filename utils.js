@@ -6,13 +6,24 @@ export async function router_function(command, data) {
             console.log("Received data:", data);
             try {
                 console.log("Received:", data);
-                let links = data.links;
+                let links = data.links || [];
                 let new_window = await chrome.windows.create({ incognito: data.private || false });
-                for (let link of links) {
-                    await chrome.tabs.create({ url: link, windowId: new_window.id });
+                let new_window_tabs = await chrome.tabs.query({ windowId: new_window.id });
+                if (links.length > 0) {
+                    // reuse the first tab in the new window for the first link
+                    try {
+                        await chrome.tabs.update(new_window_tabs[0].id, { url: links[0] });
+                    } catch (e) {
+                        // fallback to creating a new tab if update fails
+                        await chrome.tabs.create({ url: links[0], windowId: new_window.id });
+                    }
                     await new Promise((resolve) => setTimeout(resolve, data.delay || 0));
+                    for (let i = 1; i < links.length; i++) {
+                        await chrome.tabs.create({ url: links[i], windowId: new_window.id });
+                        await new Promise((resolve) => setTimeout(resolve, data.delay || 0));
+                    }
                 }
-                return
+                return;
             } catch (error) {
                 console.log(error);
             }
@@ -60,16 +71,23 @@ export async function router_function(command, data) {
                         all_default_commands.forEach((c) => console.log('-', JSON.stringify(c)));
                     }
                     //match the data    
-                    default_data.forEach(async (item) => {
+                    for (const item of default_data) {
                         if (item.keybind.toLowerCase() === target.shortcut.toLowerCase()) {
                             let new_window = await chrome.windows.create({ incognito: item.private || false });
-                            item.links.forEach(async (link) => {
-
-                                await chrome.tabs.create({ url: link, windowId: new_window.id });
-
-                            });
+                            let new_window_tabs2 = await chrome.tabs.query({ windowId: new_window.id });
+                            const linksArr = item.links || [];
+                            if (linksArr.length > 0) {
+                                try {
+                                    await chrome.tabs.update(new_window_tabs2[0].id, { url: linksArr[0] });
+                                } catch (e) {
+                                    await chrome.tabs.create({ url: linksArr[0], windowId: new_window.id });
+                                }
+                                for (let i = 1; i < linksArr.length; i++) {
+                                    await chrome.tabs.create({ url: linksArr[i], windowId: new_window.id });
+                                }
+                            }
                         }
-                    })
+                    }
                 } else {
                     console.log('this is not default command');
                 }
@@ -92,9 +110,9 @@ export function notify_for_oninstall() {
         const options = {
             type: 'basic',
             title: 'Set extension shortcuts',
-            message: 'Please set default keybinds on the Extensions → Keyboard shortcuts page for this extension.',
+            message: 'Please set trigger shortcuts for the extension to work. Click to open shortcuts page.',
             // hardcoded icon for now
-            iconUrl: "assets/image.png",
+            iconUrl: "assets/icons/icon512.png",
             buttons: [{ title: 'Open Shortcuts' }]
         };
 
