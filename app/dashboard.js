@@ -3,6 +3,7 @@ const title = document.getElementById("title")
 const keybind = document.getElementById("keybind")
 const delay = document.getElementById("delay-input")
 const private_checkbox = document.getElementById("incognito")
+const new_window_checkbox = document.getElementById("new_window")
 let is_default = null
 
 async function add_data_to_local_storage() {
@@ -11,7 +12,9 @@ async function add_data_to_local_storage() {
             title: title.value,
             keybind: keybind.value,
             links: links.value,
-            delay: delay.value
+            delay: delay.value,
+            private: private_checkbox.checked,
+            new_window: new_window_checkbox.checked
         }
         // TODO: save the data in the local storage DONE
         let validation_result = await validate_data(data)
@@ -30,8 +33,8 @@ async function add_data_to_local_storage() {
                     links: validation_result.data.links,
                     default: is_default,
                     delay: validation_result.data.delay,
-                    private: private_checkbox.checked
-
+                    private: private_checkbox.checked,
+                    new_window: new_window_checkbox.checked
                 }
                 data.push(data_to_be_saved)
                 await chrome.storage.local.set({ data: data });
@@ -39,7 +42,7 @@ async function add_data_to_local_storage() {
 
                 location.reload();
             } else {
-                console.log("data key is not found. cteating it");
+                console.log("data key is not found. creating it");
                 await chrome.storage.local.set({ data: [] });
                 //TODO: make this dynamic PENDING
             }
@@ -129,7 +132,7 @@ async function render_ui() {
     const right = document.getElementById("right");
 
     // Clear previous UI
-    right.innerHTML = "<h2>Data</h2>";
+    right.innerHTML = "<h2>WORKFLOWS:</h2>";
 
     const stored = await chrome.storage.local.get();
     const data = stored.data || [];
@@ -197,10 +200,22 @@ async function delete_keybind(uid) {
 
 }
 
+async function sync_private_to_new_window() {
+    if (private_checkbox.checked) {
+        new_window_checkbox.checked = true;
+        new_window_checkbox.disabled = true;
+    } else {
+        new_window_checkbox.disabled = false;
+        new_window_checkbox.checked = false;
+    }
+
+}
+
 document.addEventListener("DOMContentLoaded", () => {
     render_ui();
     const add_button = document.getElementById("add-button");
     const default_workflows = document.getElementById("default_workflows");
     if (add_button) add_button.addEventListener("click", add_data_to_local_storage);
     if (default_workflows) default_workflows.addEventListener("change", check_default);
+    if (private_checkbox) private_checkbox.addEventListener("change", sync_private_to_new_window);
 });

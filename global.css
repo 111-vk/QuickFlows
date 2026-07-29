@@ -208,7 +208,8 @@ body {
 }
 
 
-#private {
+#private,
+#window {
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -217,16 +218,19 @@ body {
     margin: 10px 0;
 }
 
-#private label {
+#private label,
+#window label {
     margin: 0;
 }
 
-#private h3 {
+#private h3,
+#window h3 {
     font-size: 14px;
     font-weight: 600;
 }
 
-#private input[type="checkbox"] {
+#private input[type="checkbox"],
+#window input[type="checkbox"] {
     width: 14px;
     height: 14px;
     cursor: pointer;

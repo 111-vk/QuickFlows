@@ -6,24 +6,43 @@ export async function router_function(command, data) {
             console.log("Received data:", data);
             try {
                 console.log("Received:", data);
-                let links = data.links || [];
-                let new_window = await chrome.windows.create({ incognito: data.private || false });
-                let new_window_tabs = await chrome.tabs.query({ windowId: new_window.id });
-                if (links.length > 0) {
-                    // reuse the first tab in the new window for the first link
-                    try {
-                        await chrome.tabs.update(new_window_tabs[0].id, { url: links[0] });
-                    } catch (e) {
-                        // fallback to creating a new tab if update fails
-                        await chrome.tabs.create({ url: links[0], windowId: new_window.id });
-                    }
-                    await new Promise((resolve) => setTimeout(resolve, data.delay || 0));
-                    for (let i = 1; i < links.length; i++) {
-                        await chrome.tabs.create({ url: links[i], windowId: new_window.id });
+                if (data.new_window === false) {
+                    console.log("open in current window");
+
+                    // Open links in the current window
+                    const links = data.links || [];
+                    if (links.length > 0) {
+                        // Open the first link in the current tab
+                        await chrome.tabs.update({ url: links[0] });
                         await new Promise((resolve) => setTimeout(resolve, data.delay || 0));
+                        for (let i = 1; i < links.length; i++) {
+                            await chrome.tabs.create({ url: links[i] });
+                            await new Promise((resolve) => setTimeout(resolve, data.delay || 0));
+                        }
                     }
+                    return;
+                } else {
+                    console.log("open in new window");
+                    let links = data.links || [];
+                    let new_window = await chrome.windows.create({ incognito: data.private || false });
+                    let new_window_tabs = await chrome.tabs.query({ windowId: new_window.id });
+                    if (links.length > 0) {
+                        // reuse the first tab in the new window for the first link
+                        try {
+                            await chrome.tabs.update(new_window_tabs[0].id, { url: links[0] });
+                        } catch (e) {
+                            // fallback to creating a new tab if update fails
+                            await chrome.tabs.create({ url: links[0], windowId: new_window.id });
+                        }
+                        await new Promise((resolve) => setTimeout(resolve, data.delay || 0));
+                        for (let i = 1; i < links.length; i++) {
+                            await chrome.tabs.create({ url: links[i], windowId: new_window.id });
+                            await new Promise((resolve) => setTimeout(resolve, data.delay || 0));
+                        }
+                    }
+                    return
                 }
-                return;
+
             } catch (error) {
                 console.log(error);
             }
@@ -73,17 +92,32 @@ export async function router_function(command, data) {
                     //match the data    
                     for (const item of default_data) {
                         if (item.keybind.toLowerCase() === target.shortcut.toLowerCase()) {
-                            let new_window = await chrome.windows.create({ incognito: item.private || false });
-                            let new_window_tabs2 = await chrome.tabs.query({ windowId: new_window.id });
-                            const linksArr = item.links || [];
-                            if (linksArr.length > 0) {
-                                try {
-                                    await chrome.tabs.update(new_window_tabs2[0].id, { url: linksArr[0] });
-                                } catch (e) {
-                                    await chrome.tabs.create({ url: linksArr[0], windowId: new_window.id });
+                            if (item.new_window === false) {
+                                console.log("open in current window");
+                                const linksArr = item.links || [];
+                                if (linksArr.length > 0) {
+                                    try {
+                                        await chrome.tabs.update({ url: linksArr[0] });
+                                    } catch (e) {
+                                        await chrome.tabs.create({ url: linksArr[0] });
+                                    }
+                                    for (let i = 1; i < linksArr.length; i++) {
+                                        await chrome.tabs.create({ url: linksArr[i] });
+                                    }
                                 }
-                                for (let i = 1; i < linksArr.length; i++) {
-                                    await chrome.tabs.create({ url: linksArr[i], windowId: new_window.id });
+                            } else {
+                                let new_window = await chrome.windows.create({ incognito: item.private || false });
+                                let new_window_tabs2 = await chrome.tabs.query({ windowId: new_window.id });
+                                const linksArr = item.links || [];
+                                if (linksArr.length > 0) {
+                                    try {
+                                        await chrome.tabs.update(new_window_tabs2[0].id, { url: linksArr[0] });
+                                    } catch (e) {
+                                        await chrome.tabs.create({ url: linksArr[0], windowId: new_window.id });
+                                    }
+                                    for (let i = 1; i < linksArr.length; i++) {
+                                        await chrome.tabs.create({ url: linksArr[i], windowId: new_window.id });
+                                    }
                                 }
                             }
                         }
