@@ -40,6 +40,8 @@
                     if (window.__ext_key_handler === handler) window.__ext_key_handler = null;
                     console.log("Listener removed");
 
+                    show_popup(item.title);
+
                     break;
                 }
             }

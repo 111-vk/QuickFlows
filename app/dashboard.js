@@ -4,6 +4,7 @@ const keybind = document.getElementById("keybind")
 const delay = document.getElementById("delay-input")
 const private_checkbox = document.getElementById("incognito")
 const new_window_checkbox = document.getElementById("new_window")
+const default_workflows = document.getElementById("default_workflows")
 let is_default = null
 
 async function add_data_to_local_storage() {
@@ -208,7 +209,37 @@ async function sync_private_to_new_window() {
         new_window_checkbox.disabled = false;
         new_window_checkbox.checked = false;
     }
+}
 
+function capture_keybind_input() {
+    if (!keybind) return;
+
+    keybind.addEventListener("keydown", (e) => {
+        if (default_workflows && default_workflows.value !== "no_value") {
+            return;
+        }
+
+        if (["Control", "Shift", "Alt", "Meta"].includes(e.key)) {
+            e.preventDefault();
+            return;
+        }
+
+        e.preventDefault();
+        const keys = [];
+        if (e.ctrlKey) keys.push("ctrl");
+        if (e.altKey) keys.push("alt");
+        if (e.shiftKey) keys.push("shift");
+
+        let key = e.key.toLowerCase();
+        if (key === " ") key = "space";
+        if (key === "escape" || key === "backspace") {
+            keybind.value = "";
+            return;
+        }
+
+        keys.push(key);
+        keybind.value = keys.join("+");
+    });
 }
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -218,4 +249,6 @@ document.addEventListener("DOMContentLoaded", () => {
     if (add_button) add_button.addEventListener("click", add_data_to_local_storage);
     if (default_workflows) default_workflows.addEventListener("change", check_default);
     if (private_checkbox) private_checkbox.addEventListener("change", sync_private_to_new_window);
+    if (keybind) capture_keybind_input();
+
 });
