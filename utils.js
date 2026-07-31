@@ -138,6 +138,45 @@ export async function router_function(command, data) {
 }
 
 
+
+export async function checkShortcuts() {
+    try {
+        console.log("checking shortcuts updated");
+        const stored = await chrome.storage.local.get("data");
+        const workflows = stored.data || [];
+        const current_shortcuts = await chrome.commands.getAll();
+        console.log("current_shortcuts", current_shortcuts);
+
+        const commandShortcutMap = current_shortcuts.reduce((map, cmd) => {
+            if (cmd.name && cmd.shortcut) {
+                map[cmd.name] = cmd.shortcut.toLowerCase();
+            }
+            return map;
+        }, {});
+
+        let changed = false;
+        const updatedWorkflows = workflows.map((item) => {
+            if (item.default && item.default_command) {
+                const currentShortcut = commandShortcutMap[item.default_command];
+                if (currentShortcut && currentShortcut !== item.keybind.toLowerCase()) {
+                    console.log(`Syncing default workflow '${item.title}' keybind from '${item.keybind}' to '${currentShortcut}'`);
+                    changed = true;
+                    return { ...item, keybind: currentShortcut };
+                }
+            }
+            return item;
+        });
+
+        if (changed) {
+            await chrome.storage.local.set({ data: updatedWorkflows });
+            console.log("Updated default workflow keybinds in local storage.");
+        }
+    } catch (error) {
+        console.log(error);
+    }
+}
+
+
 export function notify_for_oninstall() {
     try {
         const notifId = 'set-shortcuts-' + Date.now();

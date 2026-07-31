@@ -7,6 +7,15 @@ const new_window_checkbox = document.getElementById("new_window")
 const default_workflows = document.getElementById("default_workflows")
 let is_default = null
 
+function getDefaultCommandName(shortcut) {
+    const mapping = {
+        "ctrl+shift+1": "default_1",
+        "ctrl+shift+2": "default_2",
+        "ctrl+shift+3": "default_3"
+    };
+    return mapping[shortcut?.toLowerCase()] || null;
+}
+
 async function add_data_to_local_storage() {
     try {
         let data = {
@@ -33,6 +42,7 @@ async function add_data_to_local_storage() {
                     keybind: validation_result.data.keybind,
                     links: validation_result.data.links,
                     default: is_default,
+                    default_command: is_default ? getDefaultCommandName(default_workflows.value) : null,
                     delay: validation_result.data.delay,
                     private: private_checkbox.checked,
                     new_window: new_window_checkbox.checked

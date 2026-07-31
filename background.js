@@ -1,6 +1,7 @@
-import { router_function, notify_for_oninstall } from "./utils.js";
+import { router_function, checkShortcuts, notify_for_oninstall } from "./utils.js";
 
 chrome.commands.onCommand.addListener(async (command, ...all) => {
+    await checkShortcuts();
     try {
         await router_function(command, null);
     } catch (error) {
