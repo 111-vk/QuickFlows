@@ -252,8 +252,65 @@ function capture_keybind_input() {
     });
 }
 
+async function default_selecter() {
+    // check how many default workflows are already saved in the local storage and disable the rest of the options
+    if (!default_workflows) return;
+
+    const stored = await chrome.storage.local.get();
+    const data = stored.data || [];
+    console.log("this the data from default selecter:", data);
+    function getDefaultShortcutFromCommand(commandName) {
+        const mapping = {
+            default_1: "ctrl+shift+1",
+            default_2: "ctrl+shift+2",
+            default_3: "ctrl+shift+3"
+        };
+        return mapping[commandName] || null;
+    }
+
+    const usedDefaultCommands = new Set(
+        data
+            .filter(item => item.default && item.default_command)
+            .map(item => item.default_command)
+    );
+
+    const usedDefaultKeybinds = new Set(
+        data
+            .filter(item => item.default && !item.default_command)
+            .map(item => item.keybind?.toLowerCase())
+            .filter(Boolean)
+    );
+
+    default_workflows.querySelectorAll("option").forEach((option) => {
+        if (option.value === "no_value") {
+            option.disabled = false;
+            return;
+        }
+
+        const optionValue = option.value.toLowerCase();
+        const commandName = getDefaultCommandName(optionValue);
+        const shouldDisable =
+            (commandName && usedDefaultCommands.has(commandName)) ||
+            usedDefaultKeybinds.has(optionValue);
+
+        option.disabled = shouldDisable;
+    });
+
+    const allDefaultsTaken = Array.from(default_workflows.options)
+        .filter(option => option.value !== "no_value")
+        .every(option => option.disabled);
+
+    const noValueOption = default_workflows.querySelector('option[value="no_value"]');
+    if (noValueOption) {
+        noValueOption.text = allDefaultsTaken ? "all the workflows are used" : "select";
+        // Ensure the 'select' option remains selectable so the user can open the menu
+        noValueOption.disabled = false;
+    }
+}
+
 document.addEventListener("DOMContentLoaded", () => {
     render_ui();
+    default_selecter();
     const add_button = document.getElementById("add-button");
     const default_workflows = document.getElementById("default_workflows");
     if (add_button) add_button.addEventListener("click", add_data_to_local_storage);
