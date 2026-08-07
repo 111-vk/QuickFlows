@@ -157,15 +157,27 @@ async function render_ui() {
         const link_card = document.createElement("div");
         link_card.classList.add("link-card");
 
+        const delayText = value.delay ? `${value.delay} ms` : "No delay (0 ms)";
+        const windowText = value.new_window ? "New Window" : "Current Window";
+        const incognitoText = value.private ? "Incognito" : "Standard";
+        const typeText = value.default ? "Default Shortcut" : "Custom Keybind";
+
         link_card.innerHTML = `
-            <button class="delete-button" data-uid="${value.UID}">X</button>
+            <button class="delete-button" data-uid="${value.UID}" title="Delete workflow">X</button>
             <div class="card-header">
                 <h1>${value.default ? "✴️ " : ""}${value.title}</h1>
                 <span class="keybind">${value.keybind}</span>
             </div>
 
+            <div class="card-details">
+                <span class="detail-badge"><strong>Type:</strong> ${typeText}</span>
+                <span class="detail-badge"><strong>Delay:</strong> ${delayText}</span>
+                <span class="detail-badge"><strong>Target:</strong> ${windowText}</span>
+                <span class="detail-badge"><strong>Incognito:</strong> ${incognitoText}</span>
+            </div>
+
             <div class="card-links">
-            <h3>Links to open:</h3>
+                <h3>Links to open (${(value.links || []).length}):</h3>
                 ${(value.links || []).map((link) => `<a href="${link}" target="_blank">${link}</a>`).join("")}
             </div>
         `;

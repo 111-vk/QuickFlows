@@ -158,6 +158,31 @@ body {
     font-size: 18px;
 }
 
+/* Workflow details badges */
+.card-details {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 10px 0 14px 0;
+}
+
+.detail-badge {
+    background: var(--gray-950);
+    border: 1px solid var(--gray-700);
+    color: var(--gray-300);
+    font-size: 12px;
+    padding: 4px 8px;
+    border-radius: 6px;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.detail-badge strong {
+    color: var(--gray-100);
+    font-weight: 600;
+}
+
 /* Links */
 .card-links {
     display: flex;
