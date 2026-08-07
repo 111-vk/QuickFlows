@@ -9,14 +9,16 @@ chrome.commands.onCommand.addListener(async (command, ...all) => {
     }
 });
 
-chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
-    try {
-        if (message.type === "keybind") {
-            await router_function(null, message.payload);
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    (async () => {
+        try {
+            if (message?.type === "keybind") {
+                await router_function(null, message.payload);
+            }
+        } catch (error) {
+            console.error("onMessage error:", error);
         }
-    } catch (error) {
-        console.log(error);
-    }
+    })();
 });
 
 chrome.runtime.onInstalled.addListener(() => {

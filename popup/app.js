@@ -1,34 +1,21 @@
-// render opup UI for the popup
+// render UI for the popup
 (async function render_ui() {
-    // Build root container and apply styles
     const body = document.body || document.querySelector('body');
     if (!body) return;
 
     const style = document.createElement('style');
     style.textContent = `
-::-webkit-scrollbar {
-    display: none;
-}
-
-* {
-    scrollbar-width: none;
-}
-
-* {
-    -ms-overflow-style: none;
-}
+::-webkit-scrollbar { display: none; }
+* { scrollbar-width: none; -ms-overflow-style: none; }
 `;
     document.head.appendChild(style);
 
-    // Add UI styles for popup elements (centering empty state)
     const uiStyles = document.createElement('style');
     uiStyles.textContent = `
-    .card-header {
-    padding-right: 0px;
-    }
-    html, body { height: 100%; }
-    body { font-family: Inter, 'Segoe UI', Arial, sans-serif; }
-    .empty-state{
+    .card-header { padding-right: 0px; }
+    html, body { height: 100%; margin: 0; padding: 0; }
+    body { font-family: Inter, 'Segoe UI', Arial, sans-serif; background: #000; color: #fff; }
+    .empty-state {
         display: flex;
         flex-direction: column;
         align-items: center;
@@ -41,36 +28,28 @@
         box-sizing: border-box;
         padding: 24px;
     }
-    .empty-state h2{ margin: 0; font-size: 20px; }
-    .empty-state p{ margin: 0; opacity: 0.85; }
-    .link-card{ background: #0f0f0f; color: #fff; padding: 12px; border-radius: 8px; margin-bottom: 8px; }
+    .empty-state h2 { margin: 0; font-size: 18px; }
+    .empty-state p { margin: 0; opacity: 0.85; font-size: 13px; }
+    .link-card { background: #0f0f0f; color: #fff; padding: 12px; border-radius: 8px; margin-bottom: 8px; border: 1px solid #262626; }
+    .card-links a { cursor: pointer; }
     `;
     document.head.appendChild(uiStyles);
 
     const root = document.createElement('div');
-    Object.assign(body.style, {
-        margin: '0',
-        padding: '0',
-        overflow: 'hidden',
-        backgroundColor: 'black',
-    });
 
     Object.assign(root.style, {
         margin: '0',
         padding: '8px',
-        overflow: 'scroll',
-        // backgroundColor: 'red',
+        overflowY: 'auto',
         display: 'flex',
         flexDirection: 'column',
-        width: '620px',
-        height: '720px',
+        width: '500px',
+        maxHeight: '520px',
         boxSizing: 'border-box',
         marginTop: '55px',
-
     });
 
-    // NOTE/TODO: make this dynamic in the future
-    const stored = await chrome.storage.local.get();
+    const stored = await chrome.storage.local.get("data");
     const data = stored.data || [];
     if (data.length === 0) {
         const empty_state = document.createElement("div");
@@ -85,12 +64,12 @@
 
     body.appendChild(root);
     data.forEach((item) => {
-        // If you're storing plain objects (recommended)
-        const value = item
-
+        const value = item;
 
         const link_card = document.createElement("div");
         link_card.classList.add("link-card");
+
+        const linksList = value.links || [];
 
         link_card.innerHTML = `
                 <div class="card-header">
@@ -100,20 +79,31 @@
 
                 <div class="card-links">
                 <h3>Links to open:</h3>
-                    ${value.links.map((link) => `<a href="${link}" target="_blank">${link}</a>`).join("")}
+                    ${linksList.map((link) => `<a class="ext-link" data-url="${link}" href="#">${link}</a>`).join("")}
                 </div>
             `;
-        root.appendChild(link_card)
+        root.appendChild(link_card);
     });
 
-
-
-})()
+    // Add click listeners to links to open in a new tab
+    root.addEventListener("click", (e) => {
+        const target = e.target;
+        if (target && target.classList.contains("ext-link")) {
+            e.preventDefault();
+            const url = target.getAttribute("data-url");
+            if (url) {
+                chrome.tabs.create({ url });
+            }
+        }
+    });
+})();
 
 async function open_dashboard() {
-    console.log("testing");
-    let url = "../app/dashboard.html";
+    let url = chrome.runtime.getURL("app/dashboard.html");
     chrome.tabs.create({ url });
 }
 
-document.getElementById("settings-btn").addEventListener("click", open_dashboard);
+const settingsBtn = document.getElementById("settings-btn");
+if (settingsBtn) {
+    settingsBtn.addEventListener("click", open_dashboard);
+}

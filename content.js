@@ -7,18 +7,24 @@
         show_popup("Key listener activated!");
 
         handler = async (e) => {
-            console.log("start listening key");
+            console.log("Listening key event:", e.key);
+
+            let key = e.key.toLowerCase();
+            if (["control", "shift", "alt", "meta"].includes(key)) return;
+
+            if (key === "escape") {
+                document.removeEventListener("keydown", handler);
+                if (window.__ext_key_handler === handler) window.__ext_key_handler = null;
+                show_popup("Key listener cancelled");
+                return;
+            }
+
+            if (key === " ") key = "space";
 
             let keys = [];
-
             if (e.ctrlKey) keys.push("ctrl");
             if (e.altKey) keys.push("alt");
             if (e.shiftKey) keys.push("shift");
-
-            let key = e.key.toLowerCase();
-
-            if (["control", "shift", "alt"].includes(key)) return;
-
             keys.push(key);
 
             let pressed = keys.join("+");
@@ -28,20 +34,17 @@
             const data = stored.data || [];
 
             for (let item of data) {
-                if (item.keybind === pressed) {
-                    console.log(`Executing: ${item.title}`);
+                if (item.keybind && item.keybind.toLowerCase() === pressed) {
+                    console.log(`Executing workflow: ${item.title}`);
 
                     chrome.runtime.sendMessage({
                         type: "keybind",
                         payload: item,
                     });
                     document.removeEventListener("keydown", handler);
-                    // clear stored reference
                     if (window.__ext_key_handler === handler) window.__ext_key_handler = null;
-                    console.log("Listener removed");
 
                     show_popup(item.title);
-
                     break;
                 }
             }

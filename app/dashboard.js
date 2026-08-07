@@ -5,7 +5,7 @@ const delay = document.getElementById("delay-input")
 const private_checkbox = document.getElementById("incognito")
 const new_window_checkbox = document.getElementById("new_window")
 const default_workflows = document.getElementById("default_workflows")
-let is_default = null
+let is_default = false;
 
 function getDefaultCommandName(shortcut) {
     const mapping = {
@@ -18,108 +18,106 @@ function getDefaultCommandName(shortcut) {
 
 async function add_data_to_local_storage() {
     try {
-        let data = {
+        let rawData = {
             title: title.value,
             keybind: keybind.value,
             links: links.value,
             delay: delay.value,
             private: private_checkbox.checked,
             new_window: new_window_checkbox.checked
-        }
-        // TODO: save the data in the local storage DONE
-        let validation_result = await validate_data(data)
+        };
+        let validation_result = await validate_data(rawData);
         if (validation_result.valid) {
-            const stored = await chrome.storage.local.get();
-            let stored_keys = Object.keys(stored)
-            if (stored_keys.includes("data")) {
-                // console.log(" \"key\" is found");
-                let response = await chrome.storage.local.get("data")
-                let UID = Math.random().toString(36).substr(2, 9);
-                data = response.data
-                let data_to_be_saved = {
-                    UID: UID,
-                    title: validation_result.data.title,
-                    keybind: validation_result.data.keybind,
-                    links: validation_result.data.links,
-                    default: is_default,
-                    default_command: is_default ? getDefaultCommandName(default_workflows.value) : null,
-                    delay: validation_result.data.delay,
-                    private: private_checkbox.checked,
-                    new_window: new_window_checkbox.checked
-                }
-                data.push(data_to_be_saved)
-                await chrome.storage.local.set({ data: data });
-                console.log("done!", data_to_be_saved);
+            const stored = await chrome.storage.local.get("data");
+            let dataList = stored.data || [];
+            let UID = Math.random().toString(36).substr(2, 9);
 
-                location.reload();
-            } else {
-                console.log("data key is not found. creating it");
-                await chrome.storage.local.set({ data: [] });
-                //TODO: make this dynamic PENDING
-            }
+            let data_to_be_saved = {
+                UID: UID,
+                title: validation_result.data.title,
+                keybind: validation_result.data.keybind,
+                links: validation_result.data.links,
+                default: is_default === true,
+                default_command: is_default ? getDefaultCommandName(default_workflows.value) : null,
+                delay: validation_result.data.delay,
+                private: private_checkbox.checked,
+                new_window: new_window_checkbox.checked
+            };
+            dataList.push(data_to_be_saved);
+            await chrome.storage.local.set({ data: dataList });
+            console.log("Saved workflow successfully:", data_to_be_saved);
+
+            location.reload();
         } else {
             alert(validation_result.errors.join('\n'));
-            console.log(validation_result.errors)
+            console.log(validation_result.errors);
         }
 
     } catch (error) {
-        console.log(error);
+        console.error("add_data_to_local_storage error:", error);
     }
-
 }
+
 async function validate_data(data) {
     let errors = [];
 
     // Trim values
-    let title = data.title?.trim();
-    let keybind = data.keybind?.trim();
-    let links = data.links?.trim();
+    let titleVal = data.title?.trim();
+    let keybindVal = data.keybind?.trim().toLowerCase();
+    let rawLinks = data.links?.trim();
 
     // 1. Empty checks
-    if (!title) errors.push("Title is required");
-    if (!keybind) errors.push("Keybind is required");
-    if (!links) errors.push("Links are required");
+    if (!titleVal) errors.push("Title is required");
+    if (!keybindVal) errors.push("Keybind is required");
+    if (!rawLinks) errors.push("Links are required");
 
-    // 2. Keybind validation (basic: ctrl+a, alt+shift+x etc.)
-    const keybindRegex = /^(ctrl|alt|shift)(\+(ctrl|alt|shift))*\+[a-z0-9]$/i;
-    if (keybind && !keybindRegex.test(keybind)) {
-        errors.push("Invalid keybind format (e.g. ctrl+a, ctrl+shift+x)");
+    // 2. Keybind validation (e.g. ctrl+a, ctrl+shift+x, ctrl+shift+space)
+    const keybindRegex = /^((ctrl|alt|shift)\+)+(space|[a-z0-9])$/i;
+    if (keybindVal && !keybindRegex.test(keybindVal)) {
+        errors.push("Invalid keybind format (e.g. ctrl+a, ctrl+shift+x, ctrl+shift+space)");
     }
 
-    // 3. Links validation
-    let linksArray = links.split("\n").map(l => l.trim()).filter(Boolean);
+    // 3. Links validation and normalization
+    let linksArray = rawLinks
+        ? rawLinks.split("\n").map(l => l.trim()).filter(Boolean)
+        : [];
 
+    let processedLinks = [];
     let invalidLinks = [];
+
     linksArray.forEach(link => {
+        let formattedLink = link;
+        if (!/^[a-zA-Z][a-zA-Z0-9+.-]*:\/\//.test(formattedLink)) {
+            formattedLink = "https://" + formattedLink;
+        }
         try {
-            new URL(link);
+            new URL(formattedLink);
+            processedLinks.push(formattedLink);
         } catch {
             invalidLinks.push(link);
         }
     });
 
-
-    // validate delay
+    // Validate delay
     if (data.delay) {
         let delayValue = parseInt(data.delay);
         if (isNaN(delayValue) || delayValue < 0) {
             errors.push("Delay must be a non-negative number");
         }
     }
-    // check if the selected default keybind is already used and alert the user
-    const stored = await chrome.storage.local.get();
-    const existingData = stored.data || [];
-    const isUsed = existingData.some(item => item.keybind === keybind);
-    if (isUsed) {
-        errors.push(`${keybind} is already used. Please choose a different keybind.`);
-    }
 
+    // Check duplicate keybind
+    const stored = await chrome.storage.local.get("data");
+    const existingData = stored.data || [];
+    const isUsed = existingData.some(item => item.keybind?.toLowerCase() === keybindVal);
+    if (isUsed) {
+        errors.push(`${keybindVal} is already used. Please choose a different keybind.`);
+    }
 
     if (invalidLinks.length > 0) {
         errors.push("Invalid links: " + invalidLinks.join(", "));
     }
 
-    // 4. Final result
     if (errors.length > 0) {
         console.error(errors);
         return {
@@ -131,21 +129,21 @@ async function validate_data(data) {
     return {
         valid: true,
         data: {
-            title,
-            keybind,
-            links: linksArray,
+            title: titleVal,
+            keybind: keybindVal,
+            links: processedLinks,
             delay: data.delay ? parseInt(data.delay) : 0
-
         }
     };
 }
+
 async function render_ui() {
     const right = document.getElementById("right");
 
     // Clear previous UI
     right.innerHTML = "<h2>WORKFLOWS:</h2>";
 
-    const stored = await chrome.storage.local.get();
+    const stored = await chrome.storage.local.get("data");
     const data = stored.data || [];
 
     if (data.length === 0) {
@@ -154,9 +152,7 @@ async function render_ui() {
     }
 
     data.forEach((item) => {
-        // If you're storing plain objects (recommended)
-        const value = item
-
+        const value = item;
 
         const link_card = document.createElement("div");
         link_card.classList.add("link-card");
@@ -164,15 +160,14 @@ async function render_ui() {
         link_card.innerHTML = `
             <button class="delete-button" data-uid="${value.UID}">X</button>
             <div class="card-header">
-                <h1>${value.default ? "✴️" : ""}${value.title}</h1>
+                <h1>${value.default ? "✴️ " : ""}${value.title}</h1>
                 <span class="keybind">${value.keybind}</span>
             </div>
 
             <div class="card-links">
             <h3>Links to open:</h3>
-                ${value.links.map((link) => `<a href="${link}" target="_blank">${link}</a>`).join("")}
+                ${(value.links || []).map((link) => `<a href="${link}" target="_blank">${link}</a>`).join("")}
             </div>
-
         `;
         right.appendChild(link_card);
 
@@ -185,30 +180,30 @@ async function render_ui() {
 
 async function check_default() {
     if (default_workflows.value !== "no_value") {
-        keybind.value = default_workflows.value
-        keybind.readOnly = true
-        is_default = true
+        keybind.value = default_workflows.value;
+        keybind.readOnly = true;
+        is_default = true;
     } else {
-        keybind.readOnly = false
-        keybind.value = ""
-        is_default = false
+        keybind.readOnly = false;
+        keybind.value = "";
+        is_default = false;
     }
 }
 
 async function delete_keybind(uid) {
     try {
-        const stored = await chrome.storage.local.get();
+        if (!confirm("Are you sure you want to delete this keybind?")) {
+            return;
+        }
+        const stored = await chrome.storage.local.get("data");
         let data = stored.data || [];
         data = data.filter(item => item.UID !== uid);
-        if (confirm("Are you sure you want to delete this keybind?")) {
-            await chrome.storage.local.set({ data: data });
-            console.log("Deleted keybind with UID:", uid);
-            location.reload();
-        }
+        await chrome.storage.local.set({ data: data });
+        console.log("Deleted keybind with UID:", uid);
+        location.reload();
     } catch (error) {
-        console.log(error);
+        console.error("delete_keybind error:", error);
     }
-
 }
 
 async function sync_private_to_new_window() {
@@ -217,7 +212,6 @@ async function sync_private_to_new_window() {
         new_window_checkbox.disabled = true;
     } else {
         new_window_checkbox.disabled = false;
-        new_window_checkbox.checked = false;
     }
 }
 
@@ -227,6 +221,10 @@ function capture_keybind_input() {
     keybind.addEventListener("keydown", (e) => {
         if (default_workflows && default_workflows.value !== "no_value") {
             return;
+        }
+
+        if (e.key === "Tab" && !e.ctrlKey && !e.altKey && !e.shiftKey) {
+            return; // Allow standard tab key navigation
         }
 
         if (["Control", "Shift", "Alt", "Meta"].includes(e.key)) {

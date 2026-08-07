@@ -3,137 +3,134 @@ let shortcutsListenersAdded = false;
 export async function router_function(command, data) {
     try {
         if (data) {
-            console.log("Received data:", data);
-            try {
-                console.log("Received:", data);
-                if (data.new_window === false) {
-                    console.log("open in current window");
+            console.log("Received data payload:", data);
+            const links = data.links || [];
+            const delayMs = parseInt(data.delay) || 0;
 
-                    // Open links in the current window
-                    const links = data.links || [];
-                    if (links.length > 0) {
-                        // Open the first link in the current tab
+            if (data.new_window === false) {
+                console.log("Opening in current window");
+                if (links.length > 0) {
+                    try {
                         await chrome.tabs.update({ url: links[0] });
-                        await new Promise((resolve) => setTimeout(resolve, data.delay || 0));
-                        for (let i = 1; i < links.length; i++) {
-                            await chrome.tabs.create({ url: links[i] });
-                            await new Promise((resolve) => setTimeout(resolve, data.delay || 0));
-                        }
+                    } catch (e) {
+                        await chrome.tabs.create({ url: links[0] });
                     }
-                    return;
-                } else {
-                    console.log("open in new window");
-                    let links = data.links || [];
-                    let new_window = await chrome.windows.create({ incognito: data.private || false });
-                    let new_window_tabs = await chrome.tabs.query({ windowId: new_window.id });
-                    if (links.length > 0) {
-                        // reuse the first tab in the new window for the first link
-                        try {
+                    if (delayMs > 0) await new Promise((r) => setTimeout(r, delayMs));
+
+                    for (let i = 1; i < links.length; i++) {
+                        await chrome.tabs.create({ url: links[i] });
+                        if (delayMs > 0) await new Promise((r) => setTimeout(r, delayMs));
+                    }
+                }
+                return;
+            } else {
+                console.log("Opening in new window");
+                let new_window;
+                try {
+                    new_window = await chrome.windows.create({ incognito: data.private || false });
+                } catch (e) {
+                    console.warn("Failed to create incognito window, falling back to standard window:", e);
+                    new_window = await chrome.windows.create({ incognito: false });
+                }
+                let new_window_tabs = await chrome.tabs.query({ windowId: new_window.id });
+
+                if (links.length > 0) {
+                    try {
+                        if (new_window_tabs.length > 0) {
                             await chrome.tabs.update(new_window_tabs[0].id, { url: links[0] });
-                        } catch (e) {
-                            // fallback to creating a new tab if update fails
+                        } else {
                             await chrome.tabs.create({ url: links[0], windowId: new_window.id });
                         }
-                        await new Promise((resolve) => setTimeout(resolve, data.delay || 0));
-                        for (let i = 1; i < links.length; i++) {
-                            await chrome.tabs.create({ url: links[i], windowId: new_window.id });
-                            await new Promise((resolve) => setTimeout(resolve, data.delay || 0));
-                        }
+                    } catch (e) {
+                        await chrome.tabs.create({ url: links[0], windowId: new_window.id });
                     }
-                    return
-                }
+                    if (delayMs > 0) await new Promise((r) => setTimeout(r, delayMs));
 
-            } catch (error) {
-                console.log(error);
+                    for (let i = 1; i < links.length; i++) {
+                        await chrome.tabs.create({ url: links[i], windowId: new_window.id });
+                        if (delayMs > 0) await new Promise((r) => setTimeout(r, delayMs));
+                    }
+                }
+                return;
+            }
+        } else if (command) {
+            console.log("Command triggered:", command);
+            const commandName = String(command).trim();
+
+            if (commandName === "activate") {
+                let current_tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+                if (current_tabs && current_tabs[0]) {
+                    chrome.scripting.executeScript({
+                        target: { tabId: current_tabs[0].id },
+                        files: ["content.js"],
+                    });
+                }
+                return;
             }
 
-        } else if (command) {
-            console.log("command used:", command);
-            // normalize the incoming command string
-            const commandName = String(command).trim();
-            let target;
-            let all_default_commands = await chrome.commands.getAll()
-            console.log(all_default_commands);
+            const all_default_commands = await chrome.commands.getAll();
+            const target = all_default_commands.find((cmd) => String(cmd.name).trim() === commandName);
 
+            const stored = await chrome.storage.local.get("data");
+            const workflows = stored.data || [];
+            const default_data = workflows.filter((item) => item.default === true);
 
-            let all_default_commands_name = []
-            all_default_commands.forEach((cmd) => {
-                all_default_commands_name.push(String(cmd.name).trim())
-            })
-            console.log('available command names:', all_default_commands_name);
-            if (command === "activate") {
-                let current_tabs = await chrome.tabs.query({ active: true, currentWindow: true });
-                chrome.scripting.executeScript({
-                    target: { tabId: current_tabs[0].id },
-                    files: ["content.js"],
-                });
-            } else {
-                if (all_default_commands_name.includes(commandName)) {
-                    console.log("this default command");
-                    // get all the data with the default true
-                    const stored = await chrome.storage.local.get("data");
-                    console.log("all the stord data", stored);
-                    const data = stored.data || [];
-                    console.log("data", data);
-                    let default_data = data.filter((item) => {
-                        return item.default === true
-                    })
-                    console.log("all the default data:", default_data);
-                    // find the matching command object (compare trimmed names)
-                    target = all_default_commands.find((cmd) => {
-                        return String(cmd.name).trim() === commandName
-                    })
-                    console.log(target);
+            for (const item of default_data) {
+                const matchByCommand = item.default_command && item.default_command === commandName;
+                const matchByShortcut = target?.shortcut && item.keybind?.toLowerCase() === target.shortcut.toLowerCase();
 
-                    if (!target) {
-                        console.log('no target found — dumping candidates:');
-                        all_default_commands.forEach((c) => console.log('-', JSON.stringify(c)));
-                    }
-                    //match the data    
-                    for (const item of default_data) {
-                        if (item.keybind.toLowerCase() === target.shortcut.toLowerCase()) {
-                            if (item.new_window === false) {
-                                console.log("open in current window");
-                                const linksArr = item.links || [];
-                                if (linksArr.length > 0) {
-                                    try {
-                                        await chrome.tabs.update({ url: linksArr[0] });
-                                    } catch (e) {
-                                        await chrome.tabs.create({ url: linksArr[0] });
-                                    }
-                                    for (let i = 1; i < linksArr.length; i++) {
-                                        await chrome.tabs.create({ url: linksArr[i] });
-                                    }
+                if (matchByCommand || matchByShortcut) {
+                    console.log("Found matching default workflow:", item.title);
+                    const linksArr = item.links || [];
+                    const delayMs = parseInt(item.delay) || 0;
+
+                    if (item.new_window === false) {
+                        if (linksArr.length > 0) {
+                            try {
+                                await chrome.tabs.update({ url: linksArr[0] });
+                            } catch (e) {
+                                await chrome.tabs.create({ url: linksArr[0] });
+                            }
+                            if (delayMs > 0) await new Promise((r) => setTimeout(r, delayMs));
+
+                            for (let i = 1; i < linksArr.length; i++) {
+                                await chrome.tabs.create({ url: linksArr[i] });
+                                if (delayMs > 0) await new Promise((r) => setTimeout(r, delayMs));
+                            }
+                        }
+                    } else {
+                        let new_window;
+                        try {
+                            new_window = await chrome.windows.create({ incognito: item.private || false });
+                        } catch (e) {
+                            console.warn("Failed to create incognito window, falling back to standard window:", e);
+                            new_window = await chrome.windows.create({ incognito: false });
+                        }
+                        let new_window_tabs = await chrome.tabs.query({ windowId: new_window.id });
+
+                        if (linksArr.length > 0) {
+                            try {
+                                if (new_window_tabs.length > 0) {
+                                    await chrome.tabs.update(new_window_tabs[0].id, { url: linksArr[0] });
+                                } else {
+                                    await chrome.tabs.create({ url: linksArr[0], windowId: new_window.id });
                                 }
-                            } else {
-                                let new_window = await chrome.windows.create({ incognito: item.private || false });
-                                let new_window_tabs2 = await chrome.tabs.query({ windowId: new_window.id });
-                                const linksArr = item.links || [];
-                                if (linksArr.length > 0) {
-                                    try {
-                                        await chrome.tabs.update(new_window_tabs2[0].id, { url: linksArr[0] });
-                                    } catch (e) {
-                                        await chrome.tabs.create({ url: linksArr[0], windowId: new_window.id });
-                                    }
-                                    for (let i = 1; i < linksArr.length; i++) {
-                                        await chrome.tabs.create({ url: linksArr[i], windowId: new_window.id });
-                                    }
-                                }
+                            } catch (e) {
+                                await chrome.tabs.create({ url: linksArr[0], windowId: new_window.id });
+                            }
+                            if (delayMs > 0) await new Promise((r) => setTimeout(r, delayMs));
+
+                            for (let i = 1; i < linksArr.length; i++) {
+                                await chrome.tabs.create({ url: linksArr[i], windowId: new_window.id });
+                                if (delayMs > 0) await new Promise((r) => setTimeout(r, delayMs));
                             }
                         }
                     }
-                } else {
-                    console.log('this is not default command');
                 }
             }
-        } else {
-            // just for debugging error handling, in case the function is called without command or data
-            console.log("no command or data received");
         }
-
     } catch (error) {
-        console.log(error);
-
+        console.error("router_function error:", error);
     }
 }
 

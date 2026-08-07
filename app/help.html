@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QuickFlows - Help & User Guide</title>
+    <link rel="stylesheet" href="../global.css">
+    <style>
+        body {
+            background-color: var(--bg);
+            color: var(--text);
+            padding: 40px;
+            max-width: 800px;
+            margin: 0 auto;
+            line-height: 1.6;
+        }
+
+        h1 {
+            color: var(--accent);
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+
+        h2 {
+            margin-top: 24px;
+            margin-bottom: 12px;
+            font-size: 20px;
+            border-bottom: 1px solid var(--panel-border);
+            padding-bottom: 6px;
+        }
+
+        p,
+        li {
+            color: var(--gray-200);
+            font-size: 15px;
+            margin-bottom: 8px;
+        }
+
+        ul {
+            margin-left: 24px;
+            margin-bottom: 16px;
+        }
+
+        .kbd {
+            background: var(--surface);
+            border: 1px solid var(--accent);
+            color: var(--accent);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 13px;
+        }
+
+        .note-box {
+            background: var(--surface);
+            border-left: 4px solid var(--accent);
+            padding: 16px;
+            border-radius: 6px;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>QuickFlows User Guide</h1>
+    <p>QuickFlows lets you launch multi-link workflows instantly using customizable keyboard shortcuts.</p>
+
+    <h2>0. Initial Setup</h2>
+    <p><strong>Important:</strong> Before creating workflows, you must set up the key listener keybind:</p>
+    <ol>
+        <li>Go to <code>chrome://extensions/shortcuts</code> in your Chrome address bar.</li>
+        <li>Find <strong>QuickFlows</strong> in the list.</li>
+        <li>Set the <strong>Key Listener</strong> command to your desired shortcut (default: <span
+                class="kbd">Ctrl+Shift+0</span>).</li>
+        <li>Now you're ready to create workflows!</li>
+    </ol>
+
+    <div class="note-box">
+        <strong>Trigger Shortcut:</strong> Press <span class="kbd">Ctrl+Shift+0</span> on any webpage to activate the
+        key listener popup, then press your saved workflow keybind!
+    </div>
+
+    <h2>1. Creating a Workflow</h2>
+    <ul>
+        <li><strong>Title:</strong> Enter a friendly name for your workflow (e.g., "Morning Work").</li>
+        <li><strong>Keybind:</strong> Focus the keybind input and press your desired shortcut (e.g. <span
+                class="kbd">ctrl+shift+a</span> or <span class="kbd">ctrl+shift+space</span>). <strong>⚠️ Avoid using
+                existing browser shortcuts</strong> like <span class="kbd">ctrl+a</span>, <span
+                class="kbd">ctrl+t</span>, <span class="kbd">ctrl+n</span>, <span class="kbd">ctrl+w</span>, etc. — they
+            may conflict with Chrome's native commands.</li>
+        <li><strong>Default Workflows:</strong> Select a built-in browser shortcut (<span
+                class="kbd">ctrl+shift+1</span>, <span class="kbd">ctrl+shift+2</span>, <span
+                class="kbd">ctrl+shift+3</span>) from the dropdown to trigger the workflow without pressing <span
+                class="kbd">Ctrl+Shift+0</span> first!</li>
+        <li><strong>Delay:</strong> Specify optional delay in milliseconds between opening tabs.</li>
+        <li><strong>Incognito Mode:</strong> Check to launch links in a private browser window.</li>
+        <li><strong>Run in New Window:</strong> Check to open all links in a fresh browser window.</li>
+        <li><strong>Links:</strong> Enter full URLs or domain names separated by new lines (e.g.,
+            <code>https://github.com</code> or <code>youtube.com</code>).
+        </li>
+    </ul>
+
+    <h2>2. Triggering Workflows</h2>
+    <p>There are two ways to trigger your saved workflows:</p>
+    <ul>
+        <li><strong>Page Shortcut Listener:</strong> Press <span class="kbd">Ctrl+Shift+0</span> to activate key
+            listener, then type your workflow's custom keybind (e.g. <span class="kbd">ctrl+shift+a</span>). Press <span
+                class="kbd">Esc</span> to cancel key listening.</li>
+        <li><strong>Default Shortcuts:</strong> Workflows configured with default shortcuts (<span
+                class="kbd">ctrl+shift+1</span>, <span class="kbd">ctrl+shift+2</span>, <span
+                class="kbd">ctrl+shift+3</span>) can be pressed anywhere in Chrome at any time! You can customize these
+            shortcuts in Chrome's native page at <code>chrome://extensions/shortcuts</code>.</li>
+    </ul>
+
+    <h2>3. Tips & Tricks</h2>
+    <ul>
+        <li>If no protocol (like <code>https://</code>) is provided for a URL, QuickFlows automatically adds
+            <code>https://</code> for you.
+        </li>
+        <li>To delete a workflow, click the <span class="kbd">X</span> button on the top right of its card in the
+            dashboard.</li>
+    </ul>
+</body>
+
+</html>
