@@ -12,7 +12,10 @@
 
     const uiStyles = document.createElement('style');
     uiStyles.textContent = `
-    .card-header { padding-right: 0px; }
+    .card-header { padding-right: 0px; display: flex; justify-content: space-between; align-items: center; }
+    .card-header h1 { margin: 0; flex: 1; }
+    .card-header-right { display: flex; align-items: center; gap: 8px; }
+    .default-badge { background: #4a9eff; color: #000; padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; text-transform: uppercase; }
     html, body { height: 100%; margin: 0; padding: 0; }
     body { font-family: Inter, 'Segoe UI', Arial, sans-serif; background: #000; color: #fff; }
     .empty-state {
@@ -50,7 +53,15 @@
     });
 
     const stored = await chrome.storage.local.get("data");
-    const data = stored.data || [];
+    let data = stored.data || [];
+
+    // Sort data so default workflows appear first
+    data.sort((a, b) => {
+        if (a.default && !b.default) return -1;
+        if (!a.default && b.default) return 1;
+        return 0;
+    });
+
     if (data.length === 0) {
         const empty_state = document.createElement("div");
         empty_state.classList.add("empty-state");
@@ -70,11 +81,15 @@
         link_card.classList.add("link-card");
 
         const linksList = value.links || [];
+        const defaultBadge = value.default ? '<span class="default-badge">Default</span>' : '';
 
         link_card.innerHTML = `
                 <div class="card-header">
                     <h1>${value.title}</h1>
-                    <span class="keybind">${value.keybind}</span>
+                    <div class="card-header-right">
+                        ${defaultBadge}
+                        <span class="keybind">${value.keybind}</span>
+                    </div>
                 </div>
 
                 <div class="card-links">
