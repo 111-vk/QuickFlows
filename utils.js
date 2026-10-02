@@ -1,24 +1,45 @@
 let shortcutsListenersAdded = false;
 
+async function getActiveTabContext() {
+    try {
+        const currentTabs = await chrome.tabs.query({ active: true, currentWindow: true });
+        return currentTabs && currentTabs[0] ? currentTabs[0] : null;
+    } catch (error) {
+        console.warn("Failed to resolve active tab context:", error);
+        return null;
+    }
+}
+
+function withWindowId(options, windowId) {
+    if (windowId == null) return options;
+    return { ...options, windowId };
+}
+
 export async function router_function(command, data) {
     try {
         if (data) {
             console.log("Received data payload:", data);
             const links = data.links || [];
             const delayMs = parseInt(data.delay) || 0;
+            const activeTab = await getActiveTabContext();
+            const activeWindowId = activeTab?.windowId ?? null;
 
             if (data.new_window === false) {
                 console.log("Opening in current window");
                 if (links.length > 0) {
                     try {
-                        await chrome.tabs.update({ url: links[0] });
+                        if (activeTab) {
+                            await chrome.tabs.update({ tabId: activeTab.id, url: links[0] });
+                        } else {
+                            await chrome.tabs.create({ url: links[0] });
+                        }
                     } catch (e) {
-                        await chrome.tabs.create({ url: links[0] });
+                        await chrome.tabs.create(withWindowId({ url: links[0] }, activeWindowId));
                     }
                     if (delayMs > 0) await new Promise((r) => setTimeout(r, delayMs));
 
                     for (let i = 1; i < links.length; i++) {
-                        await chrome.tabs.create({ url: links[i] });
+                        await chrome.tabs.create(withWindowId({ url: links[i] }, activeWindowId));
                         if (delayMs > 0) await new Promise((r) => setTimeout(r, delayMs));
                     }
                 }
@@ -85,16 +106,22 @@ export async function router_function(command, data) {
                     const delayMs = parseInt(item.delay) || 0;
 
                     if (item.new_window === false) {
+                        const activeTab = await getActiveTabContext();
+                        const activeWindowId = activeTab?.windowId ?? null;
                         if (linksArr.length > 0) {
                             try {
-                                await chrome.tabs.update({ url: linksArr[0] });
+                                if (activeTab) {
+                                    await chrome.tabs.update({ tabId: activeTab.id, url: linksArr[0] });
+                                } else {
+                                    await chrome.tabs.create({ url: linksArr[0] });
+                                }
                             } catch (e) {
-                                await chrome.tabs.create({ url: linksArr[0] });
+                                await chrome.tabs.create(withWindowId({ url: linksArr[0] }, activeWindowId));
                             }
                             if (delayMs > 0) await new Promise((r) => setTimeout(r, delayMs));
 
                             for (let i = 1; i < linksArr.length; i++) {
-                                await chrome.tabs.create({ url: linksArr[i] });
+                                await chrome.tabs.create(withWindowId({ url: linksArr[i] }, activeWindowId));
                                 if (delayMs > 0) await new Promise((r) => setTimeout(r, delayMs));
                             }
                         }
