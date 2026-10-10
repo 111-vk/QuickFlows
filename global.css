@@ -123,6 +123,33 @@ body {
     margin-bottom: 15px;
 }
 
+.workflow-search {
+    width: 100%;
+    padding: 10px 12px;
+    margin-bottom: 16px;
+    background: var(--bg);
+    border: 1px solid var(--panel-border);
+    border-radius: 8px;
+    color: var(--text);
+    outline: none;
+}
+
+.workflow-search:focus {
+    border-color: var(--accent);
+}
+
+.workflow-empty {
+    color: var(--muted-text);
+    padding: 12px 0;
+}
+
+.search-match {
+    background: #facc15;
+    color: #171717;
+    border-radius: 2px;
+    padding: 0 1px;
+}
+
 /* Card */
 .link-card {
     background: var(--surface);

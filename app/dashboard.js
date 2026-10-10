@@ -16,6 +16,34 @@ function getDefaultCommandName(shortcut) {
     return mapping[shortcut?.toLowerCase()] || null;
 }
 
+function escapeHtml(value) {
+    return String(value ?? "").replace(/[&<>"']/g, (character) => ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#39;"
+    })[character]);
+}
+
+function highlightSearchTerm(value, searchTerm) {
+    const text = String(value ?? "");
+    if (!searchTerm) return escapeHtml(text);
+
+    const escapedSearchTerm = searchTerm.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const matcher = new RegExp(escapedSearchTerm, "gi");
+    let highlightedText = "";
+    let lastIndex = 0;
+
+    for (const match of text.matchAll(matcher)) {
+        highlightedText += escapeHtml(text.slice(lastIndex, match.index));
+        highlightedText += `<mark class="search-match">${escapeHtml(match[0])}</mark>`;
+        lastIndex = match.index + match[0].length;
+    }
+
+    return highlightedText + escapeHtml(text.slice(lastIndex));
+}
+
 async function add_data_to_local_storage() {
     try {
         let rawData = {
@@ -138,20 +166,37 @@ async function validate_data(data) {
 }
 
 async function render_ui() {
-    const right = document.getElementById("right");
-
-    // Clear previous UI
-    right.innerHTML = "<h2>WORKFLOWS:</h2>";
+    const workflowList = document.getElementById("workflow-list");
+    const searchInput = document.getElementById("workflow-search");
+    if (!workflowList || !searchInput) return;
 
     const stored = await chrome.storage.local.get("data");
     const data = stored.data || [];
+    const searchTerm = searchInput.value.trim().toLowerCase();
+    const filteredData = data.filter((item) =>
+        [item.title, item.keybind, ...(item.links || [])]
+            .some((value) => String(value || "").toLowerCase().includes(searchTerm))
+    );
+    workflowList.replaceChildren();
 
     if (data.length === 0) {
-        right.innerHTML += `<p style="opacity:0.6;">No data found</p>`;
+        const emptyMessage = document.createElement("p");
+        emptyMessage.classList.add("workflow-empty");
+        emptyMessage.textContent = "No workflows found";
+        workflowList.appendChild(emptyMessage);
         return;
     }
 
-    data.forEach((item) => {
+    if (filteredData.length === 0) {
+        const emptyMessage = document.createElement("p");
+        emptyMessage.classList.add("workflow-empty");
+        emptyMessage.textContent = "No workflows match your search.";
+        workflowList.appendChild(emptyMessage);
+        return;
+    }
+
+    filteredData.forEach((item) => {
+        searchInput.focus();
         const value = item;
 
         const link_card = document.createElement("div");
@@ -163,10 +208,10 @@ async function render_ui() {
         const typeText = value.default ? "Default Shortcut" : "Custom Keybind";
 
         link_card.innerHTML = `
-            <button class="delete-button" data-uid="${value.UID}" title="Delete workflow">X</button>
+            <button class="delete-button" data-uid="${escapeHtml(value.UID)}" title="Delete workflow">X</button>
             <div class="card-header">
-                <h1>${value.default ? "✴️ " : ""}${value.title}</h1>
-                <span class="keybind">${value.keybind}</span>
+                <h1>${value.default ? "✴️ " : ""}${highlightSearchTerm(value.title, searchTerm)}</h1>
+                <span class="keybind">${highlightSearchTerm(value.keybind, searchTerm)}</span>
             </div>
 
             <div class="card-details">
@@ -178,10 +223,10 @@ async function render_ui() {
 
             <div class="card-links">
                 <h3>Links to open (${(value.links || []).length}):</h3>
-                ${(value.links || []).map((link) => `<a href="${link}" target="_blank">${link}</a>`).join("")}
+                ${(value.links || []).map((link) => `<a href="${escapeHtml(link)}" target="_blank">${highlightSearchTerm(link, searchTerm)}</a>`).join("")}
             </div>
         `;
-        right.appendChild(link_card);
+        workflowList.appendChild(link_card);
 
         const btn = link_card.querySelector('.delete-button');
         if (btn) {
@@ -321,8 +366,10 @@ async function default_selecter() {
 document.addEventListener("DOMContentLoaded", () => {
     render_ui();
     default_selecter();
+    const searchInput = document.getElementById("workflow-search");
     const add_button = document.getElementById("add-button");
     const default_workflows = document.getElementById("default_workflows");
+    if (searchInput) searchInput.addEventListener("input", render_ui);
     if (add_button) add_button.addEventListener("click", add_data_to_local_storage);
     if (default_workflows) default_workflows.addEventListener("change", check_default);
     if (private_checkbox) private_checkbox.addEventListener("change", sync_private_to_new_window);

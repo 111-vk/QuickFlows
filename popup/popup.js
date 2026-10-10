@@ -1,5 +1,33 @@
 // render UI for the popup
 (async function render_ui() {
+    function escapeHtml(value) {
+        return String(value ?? "").replace(/[&<>"']/g, (character) => ({
+            "&": "&amp;",
+            "<": "&lt;",
+            ">": "&gt;",
+            '"': "&quot;",
+            "'": "&#39;"
+        })[character]);
+    }
+
+    function highlightSearchTerm(value, searchTerm) {
+        const text = String(value ?? "");
+        if (!searchTerm) return escapeHtml(text);
+
+        const escapedSearchTerm = searchTerm.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+        const matcher = new RegExp(escapedSearchTerm, "gi");
+        let highlightedText = "";
+        let lastIndex = 0;
+
+        for (const match of text.matchAll(matcher)) {
+            highlightedText += escapeHtml(text.slice(lastIndex, match.index));
+            highlightedText += `<mark class="search-match">${escapeHtml(match[0])}</mark>`;
+            lastIndex = match.index + match[0].length;
+        }
+
+        return highlightedText + escapeHtml(text.slice(lastIndex));
+    }
+
     const body = document.body || document.querySelector('body');
     if (!body) return;
 
@@ -53,7 +81,7 @@
     });
 
     const stored = await chrome.storage.local.get("data");
-    let data = stored.data || [];
+    const data = stored.data || [];
 
     // Sort data so default workflows appear first
     data.sort((a, b) => {
@@ -62,46 +90,70 @@
         return 0;
     });
 
-    if (data.length === 0) {
-        const empty_state = document.createElement("div");
-        empty_state.classList.add("empty-state");
-
-        empty_state.innerHTML = `
-            <h2>No workflows found</h2>
-            <p>Click the settings button to create a workflow</p>
-        `;
-        root.appendChild(empty_state);
-    }
-
+    const searchInput = document.createElement("input");
+    searchInput.type = "search";
+    searchInput.className = "workflow-search";
+    searchInput.placeholder = "Search workflows...";
+    searchInput.setAttribute("aria-label", "Search workflows");
+    const results = document.createElement("div");
+    results.className = "workflow-results";
+    root.append(searchInput, results);
     body.appendChild(root);
-    data.forEach((item) => {
-        const value = item;
+    searchInput.focus();
 
-        const link_card = document.createElement("div");
-        link_card.classList.add("link-card");
+    function renderWorkflows() {
+        results.replaceChildren();
+        const searchTerm = searchInput.value.trim().toLowerCase();
+        const filteredData = data.filter((item) =>
+            [item.title, item.keybind, ...(item.links || [])]
+                .some((value) => String(value || "").toLowerCase().includes(searchTerm))
+        );
 
-        const linksList = value.links || [];
-        const defaultBadge = value.default ? '<span class="default-badge">Default</span>' : '';
+        if (data.length === 0 || filteredData.length === 0) {
+            const emptyState = document.createElement("div");
+            emptyState.classList.add("empty-state");
+            const heading = document.createElement("h2");
+            const message = document.createElement("p");
+            if (data.length === 0) {
+                heading.textContent = "No workflows found";
+                message.textContent = "Click the settings button to create a workflow";
+            } else {
+                heading.textContent = "No matches found";
+                message.textContent = "Try a different title, shortcut, or link.";
+            }
+            emptyState.append(heading, message);
+            results.appendChild(emptyState);
+            return;
+        }
 
-        link_card.innerHTML = `
+        filteredData.forEach((value) => {
+            const link_card = document.createElement("div");
+            link_card.classList.add("link-card");
+            const linksList = value.links || [];
+            const defaultBadge = value.default ? '<span class="default-badge">Default</span>' : '';
+            link_card.innerHTML = `
                 <div class="card-header">
-                    <h1>${value.title}</h1>
+                    <h1>${highlightSearchTerm(value.title, searchTerm)}</h1>
                     <div class="card-header-right">
                         ${defaultBadge}
-                        <span class="keybind">${value.keybind}</span>
+                        <span class="keybind">${highlightSearchTerm(value.keybind, searchTerm)}</span>
                     </div>
                 </div>
 
                 <div class="card-links">
                 <h3>Links to open:</h3>
-                    ${linksList.map((link) => `<a class="ext-link" data-url="${link}" href="#">${link}</a>`).join("")}
+                    ${linksList.map((link) => `<a class="ext-link" data-url="${escapeHtml(link)}" href="#">${highlightSearchTerm(link, searchTerm)}</a>`).join("")}
                 </div>
             `;
-        root.appendChild(link_card);
-    });
+            results.appendChild(link_card);
+        });
+    }
+
+    searchInput.addEventListener("input", renderWorkflows);
+    renderWorkflows();
 
     // Add click listeners to links to open in a new tab
-    root.addEventListener("click", (e) => {
+    results.addEventListener("click", (e) => {
         const target = e.target;
         if (target && target.classList.contains("ext-link")) {
             e.preventDefault();
